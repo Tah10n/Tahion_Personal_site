@@ -5,10 +5,8 @@ import {
   Cpu,
   Gauge,
   Github,
-  Layers3,
   Mail,
   MapPin,
-  Palette,
   Send,
   TerminalSquare,
   Zap,
@@ -20,20 +18,38 @@ import { profile } from "./data/profile";
 
 const iconMap = [BrainCircuit, Code2, Gauge, Cpu];
 
-const backdropVariants: { id: BackdropVariant; label: string }[] = [
-  { id: "signal", label: "Signal" },
-  { id: "topography", label: "Topo" },
-  { id: "radar", label: "Radar" },
+const visualModes: {
+  id: BackdropVariant;
+  theme: BackdropTheme;
+  label: string;
+  shortLabel: string;
+  descriptor: string;
+}[] = [
+  {
+    id: "signal",
+    theme: "acid",
+    label: "ASCII Torus",
+    shortLabel: "Torus",
+    descriptor: "4 ASCII rings",
+  },
+  {
+    id: "topography",
+    theme: "plasma",
+    label: "Wave Lines",
+    shortLabel: "Waves",
+    descriptor: "Interactive line field",
+  },
+  {
+    id: "radar",
+    theme: "ice",
+    label: "Vanta Dots",
+    shortLabel: "Dots",
+    descriptor: "Moving dot field",
+  },
 ];
 
-const backdropThemes: { id: BackdropTheme; label: string }[] = [
-  { id: "acid", label: "Acid" },
-  { id: "plasma", label: "Plasma" },
-  { id: "ice", label: "Ice" },
-];
-
-const variantStorageKey = "tahion.backdrop.variant";
-const themeStorageKey = "tahion.backdrop.theme";
+const visualModeStorageKey = "tahion.visual.mode";
+const legacyVariantStorageKey = "tahion.backdrop.variant";
 
 function readStoredChoice<T extends string>(key: string, fallback: T, allowed: readonly T[]) {
   const stored = window.localStorage.getItem(key);
@@ -41,89 +57,61 @@ function readStoredChoice<T extends string>(key: string, fallback: T, allowed: r
 }
 
 function App() {
-  const [backdropVariant, setBackdropVariant] = useState<BackdropVariant>(() =>
+  const [visualMode, setVisualMode] = useState<BackdropVariant>(() =>
     readStoredChoice(
-      variantStorageKey,
-      "signal",
-      backdropVariants.map((item) => item.id),
+      visualModeStorageKey,
+      readStoredChoice(
+        legacyVariantStorageKey,
+        "signal",
+        visualModes.map((item) => item.id),
+      ),
+      visualModes.map((item) => item.id),
     ),
   );
-  const [backdropTheme, setBackdropTheme] = useState<BackdropTheme>(() =>
-    readStoredChoice(
-      themeStorageKey,
-      "acid",
-      backdropThemes.map((item) => item.id),
-    ),
-  );
+  const activeVisualMode = visualModes.find((item) => item.id === visualMode) ?? visualModes[0];
 
   useEffect(() => {
-    window.localStorage.setItem(variantStorageKey, backdropVariant);
-  }, [backdropVariant]);
-
-  useEffect(() => {
-    window.localStorage.setItem(themeStorageKey, backdropTheme);
-    document.documentElement.dataset.siteTheme = backdropTheme;
-  }, [backdropTheme]);
-
-  const activeVariantLabel =
-    backdropVariants.find((item) => item.id === backdropVariant)?.label ?? "Signal";
-  const activeThemeLabel =
-    backdropThemes.find((item) => item.id === backdropTheme)?.label ?? "Acid";
+    window.localStorage.setItem(visualModeStorageKey, visualMode);
+    window.localStorage.setItem(legacyVariantStorageKey, visualMode);
+    document.documentElement.dataset.siteTheme = activeVisualMode.theme;
+  }, [activeVisualMode.theme, visualMode]);
 
   return (
     <main>
-      <section className="hero" aria-labelledby="hero-title">
-        <ShaderBackdrop variant={backdropVariant} theme={backdropTheme} />
-        <div className="hero-content">
-          <header className="topbar">
-            <a className="brand" href="#hero-title" aria-label="Tahion home">
-              <TerminalSquare size={22} aria-hidden="true" />
-              <span>{profile.handle}</span>
-            </a>
-            <div className="topbar-actions">
-              <nav aria-label="Primary navigation">
-                <a href="#work">Work</a>
-                <a href="#tools">Tools</a>
-                <a href="#contact">Contact</a>
-              </nav>
+      <ShaderBackdrop variant={visualMode} theme={activeVisualMode.theme} />
+      <header className="topbar">
+        <a className="brand" href="#hero-title" aria-label="Tahion home">
+          <TerminalSquare size={22} aria-hidden="true" />
+          <span>{profile.handle}</span>
+        </a>
+        <div className="topbar-actions">
+          <nav aria-label="Primary navigation">
+            <a href="#work">Work</a>
+            <a href="#tools">Tools</a>
+            <a href="#contact">Contact</a>
+          </nav>
 
-              <div className="visual-controls" aria-label="Visual controls">
-                <div className="segmented-control" aria-label="Background variant">
-                  <span>
-                    <Layers3 size={14} aria-hidden="true" />
-                  </span>
-                  {backdropVariants.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={backdropVariant === item.id ? "is-active" : ""}
-                      onClick={() => setBackdropVariant(item.id)}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="segmented-control theme-control" aria-label="Color theme">
-                  <span>
-                    <Palette size={14} aria-hidden="true" />
-                  </span>
-                  {backdropThemes.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={backdropTheme === item.id ? "is-active" : ""}
-                      onClick={() => setBackdropTheme(item.id)}
-                    >
-                      <i aria-hidden="true" data-swatch={item.id} />
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <div className="visual-controls" aria-label="Visual controls">
+            <div className="segmented-control mode-switch" aria-label="Visual style">
+              {visualModes.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={visualMode === item.id ? "is-active" : ""}
+                  onClick={() => setVisualMode(item.id)}
+                  aria-label={`Use ${item.label} visual style`}
+                >
+                  <span className="mode-label">{item.shortLabel}</span>
+                  <small>{item.descriptor}</small>
+                </button>
+              ))}
             </div>
-          </header>
+          </div>
+        </div>
+      </header>
 
+      <section className="hero" aria-labelledby="hero-title">
+        <div className="hero-content">
           <div className="cockpit-grid">
             <section className="identity-panel" aria-label="Portfolio introduction">
               <span className="eyebrow">
@@ -179,11 +167,11 @@ function App() {
                 </div>
                 <div>
                   <dt>Backdrop</dt>
-                  <dd>{activeVariantLabel}</dd>
+                  <dd>{activeVisualMode.shortLabel}</dd>
                 </div>
                 <div>
-                  <dt>Theme</dt>
-                  <dd>{activeThemeLabel}</dd>
+                  <dt>Visual style</dt>
+                  <dd>{activeVisualMode.label}</dd>
                 </div>
               </dl>
             </aside>
