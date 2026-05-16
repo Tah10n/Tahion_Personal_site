@@ -2,7 +2,7 @@
 
 Project X-Ray is a portfolio tool for turning a public GitHub repository URL into an evidence-linked engineering report.
 
-The first implementation is intentionally static-only so the site can keep running on GitHub Pages without a backend, secrets, or AI API keys.
+The default implementation is browser-static so the site can keep running on GitHub Pages without a backend, secrets, or AI API keys. An optional backend mode can be enabled with a public Vite environment variable.
 
 ## Current Browser Mode
 
@@ -34,6 +34,24 @@ The normal scan path uses roughly 2-3 GitHub REST requests before switching to r
 Browser mode caches completed snapshots in `localStorage` for 6 hours under `tahion.xray.snapshot:*`. Cached reports render through the same `XRayReport` UI contract and include an `Unknowns` note that the data came from browser cache.
 
 The analyzer then builds a deterministic report from visible evidence. It does not call an LLM and it does not execute repository code.
+
+## Optional Backend Mode
+
+Set `VITE_XRAY_BACKEND_URL` to a Repo Analyzer Service base URL to try the backend first:
+
+```text
+VITE_XRAY_BACKEND_URL=http://127.0.0.1:3000
+```
+
+The frontend resolves that value to:
+
+```text
+GET /api/xray?repo=https%3A%2F%2Fgithub.com%2Fowner%2Frepo
+```
+
+If the backend request fails, `ProjectXRayPage` automatically falls back to `GithubBrowserProvider` and renders a visible notice above the report. If both backend and browser mode fail, the page shows the combined failure and keeps `Demo report` available.
+
+Backend mode is only configuration. GitHub tokens, AI keys, private repository credentials, and caching policy belong in Repo Analyzer Service, not in this frontend.
 
 ## Demo Mode
 
@@ -80,7 +98,7 @@ The important design rule: the page does not care whether the report was produce
 
 ## Pipeline
 
-Current static pipeline:
+Browser-static pipeline:
 
 ```text
 GitHub URL
@@ -92,32 +110,32 @@ GitHub URL
   -> ProjectXRayPage UI
 ```
 
-Future backend pipeline:
+Backend-configured pipeline:
 
 ```text
 GitHub URL
   -> BackendXrayProvider.inspect
-  -> XRayReport
+  -> XRayReport if successful
+  -> GithubBrowserProvider.inspect fallback if backend fails
   -> ProjectXRayPage UI
 ```
 
 ## Backend Upgrade Path
 
-`src/xray/providers/backendXrayProvider.ts` is the adapter point for a future API.
+`src/xray/providers/backendXrayProvider.ts` is the adapter point for the service API.
 The target local service project is:
 
 ```text
 C:\Users\tahion\dev\Projects\repo_analyzer_service
 ```
 
-The planned service contract is:
+The service contract is:
 
 ```text
 GET /api/xray?repo=https%3A%2F%2Fgithub.com%2Fowner%2Frepo
 ```
 
-Until that service is wired and deployed, the GitHub Pages version should keep
-browser-static mode and Demo report as working fallbacks.
+The GitHub Pages version should keep browser-static mode and Demo report as working fallbacks.
 
 Recommended backend responsibilities:
 

@@ -14,14 +14,16 @@ The local machine currently uses Node `24.15.0`; `.nvmrc` and `.node-version` ar
 ```bash
 npm install
 npm run dev
+npm run test
 npm run check
 npm run build
 npm run preview
 ```
 
 - `npm run dev` starts Vite at `http://127.0.0.1:5173/Tahion_Personal_site/`.
+- `npm run test` runs focused Node tests for Project X-Ray helpers.
 - `npm run preview` serves the production build at `http://127.0.0.1:4173/Tahion_Personal_site/`.
-- `npm run check` runs ESLint, Prettier check, TypeScript, and production build.
+- `npm run check` runs ESLint, Prettier check, tests, TypeScript, and production build.
 
 ## Project X-Ray
 
@@ -29,12 +31,17 @@ Project X-Ray lives at `#/xray`. It accepts a public GitHub repository URL and
 generates an evidence-linked engineering report from public repository metadata,
 README, manifests, workflows, docs, and tree shape.
 
-The first version is static-only and does not use backend services or AI API
-keys. The planned backend target is the shared Repo Analyzer Service at
-`C:\Users\tahion\dev\Projects\repo_analyzer_service`, but the hosted site should
-keep browser-static and demo fallbacks until that service is wired. See
-[docs/project-xray.md](docs/project-xray.md) for architecture, browser-mode
-limits, and the backend upgrade path.
+By default, Project X-Ray runs in browser-static mode and does not use backend
+services or AI API keys. Set `VITE_XRAY_BACKEND_URL` to the shared Repo Analyzer
+Service base URL to try backend X-Ray first:
+
+```bash
+VITE_XRAY_BACKEND_URL=http://127.0.0.1:3000
+```
+
+The hosted site keeps browser-static and demo fallbacks even when the backend is
+configured. See [docs/project-xray.md](docs/project-xray.md) for architecture,
+browser-mode limits, and the backend path.
 
 ## Content
 

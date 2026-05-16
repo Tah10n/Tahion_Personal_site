@@ -20,6 +20,7 @@ Use these project scripts:
 ```bash
 npm install
 npm run dev
+npm run test
 npm run check
 npm run build
 npm run preview
@@ -36,7 +37,7 @@ Before handing off code changes, run:
 npm run check
 ```
 
-This runs ESLint, Prettier check, TypeScript, and a production Vite build.
+This runs ESLint, Prettier check, Project X-Ray helper tests, TypeScript, and a production Vite build.
 
 ## Structure
 
@@ -52,6 +53,7 @@ This runs ESLint, Prettier check, TypeScript, and a production Vite build.
 - Keep the hosted site usable as a static GitHub Pages app. Optional backend integrations must be public `VITE_` configuration and must preserve browser/demo fallbacks.
 - Do not add secrets or private values to the repo. Only use public `VITE_` env vars if needed.
 - Do not put GitHub tokens, AI keys, or private repository credentials in the frontend.
+- Use `VITE_XRAY_BACKEND_URL` only for the public Repo Analyzer Service base URL; browser-static and demo fallbacks must keep working.
 - Preserve the GitHub Pages base path in `vite.config.ts` unless the deploy target changes.
 - Do not commit `node_modules/` or `dist/`; they are ignored intentionally.
 - Prefer small, focused changes that preserve the existing visual direction.

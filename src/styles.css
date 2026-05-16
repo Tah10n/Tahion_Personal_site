@@ -1312,6 +1312,27 @@ dd {
   line-height: 0.92;
 }
 
+.xray-notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: var(--panel-border-width) solid color-mix(in srgb, var(--amber) 50%, var(--line));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--amber) 9%, rgba(245, 247, 251, 0.05));
+}
+
+.xray-notice svg {
+  flex: 0 0 auto;
+  color: var(--amber);
+}
+
+.xray-notice p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.48;
+}
+
 .xray-repo-link {
   flex: 0 0 auto;
   max-width: 100%;

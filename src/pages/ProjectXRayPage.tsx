@@ -20,16 +20,24 @@ import { FormEvent, useMemo, useRef, useState } from "react";
 import { buildStaticXrayReport } from "../xray/analyzers/staticXrayAnalyzer";
 import { demoXrayReport } from "../xray/demoReport";
 import { parseGithubRepoUrl } from "../xray/githubUrl";
+import { BackendXrayProvider } from "../xray/providers/backendXrayProvider";
 import { GithubBrowserProvider } from "../xray/providers/githubBrowserProvider";
-import { RepoSnapshot, XRayReport } from "../xray/types";
+import { RepoInput, RepoSnapshot, XRayReport } from "../xray/types";
 
 type XRayStatus =
   | { state: "idle" }
   | { state: "loading"; message: string }
-  | { state: "ready"; report: XRayReport }
+  | { state: "ready"; report: XRayReport; notice?: string }
   | { state: "error"; message: string };
 
-const provider = new GithubBrowserProvider();
+type InspectProjectResult = {
+  result: RepoSnapshot | XRayReport;
+  notice?: string;
+};
+
+const browserProvider = new GithubBrowserProvider();
+const configuredBackendUrl = import.meta.env.VITE_XRAY_BACKEND_URL?.trim() ?? "";
+const backendProvider = configuredBackendUrl ? new BackendXrayProvider(configuredBackendUrl) : null;
 
 const exampleRepos = [
   "https://github.com/Tah10n/pocket-ai",
@@ -45,6 +53,40 @@ const sectionIcons = {
 
 function isSnapshot(value: RepoSnapshot | XRayReport): value is RepoSnapshot {
   return "provider" in value;
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error.";
+}
+
+async function inspectProject(input: RepoInput): Promise<InspectProjectResult> {
+  if (!backendProvider) {
+    return {
+      result: await browserProvider.inspect(input),
+    };
+  }
+
+  try {
+    return {
+      result: await backendProvider.inspect(input),
+    };
+  } catch (backendError) {
+    try {
+      return {
+        result: await browserProvider.inspect(input),
+        notice: `Backend X-Ray was unavailable (${errorMessage(
+          backendError,
+        )}). Rendered the browser-static fallback instead.`,
+      };
+    } catch (fallbackError) {
+      throw new Error(
+        `Backend X-Ray failed (${errorMessage(
+          backendError,
+        )}). Browser fallback also failed (${errorMessage(fallbackError)}).`,
+        { cause: fallbackError },
+      );
+    }
+  }
 }
 
 function formatNumber(value: number) {
@@ -68,6 +110,10 @@ function strengthLabel(strength: string) {
   if (strength === "medium") return "Medium";
   if (strength === "weak") return "Weak";
   return "Unknown";
+}
+
+function modeLabel(mode: XRayReport["mode"]) {
+  return mode === "backend-ai" ? "Backend AI scan" : "Browser static scan";
 }
 
 function ProjectStackMap({ report }: { report: XRayReport }) {
@@ -132,7 +178,7 @@ function ProjectStackMap({ report }: { report: XRayReport }) {
   );
 }
 
-function ProjectXRayReport({ report }: { report: XRayReport }) {
+function ProjectXRayReport({ report, notice }: { report: XRayReport; notice?: string }) {
   const sections = [
     { id: "architecture", section: report.architecture },
     { id: "reliability", section: report.reliability },
@@ -146,7 +192,7 @@ function ProjectXRayReport({ report }: { report: XRayReport }) {
         <div>
           <span className="eyebrow">
             <Radar size={15} aria-hidden="true" />
-            Browser static scan
+            {modeLabel(report.mode)}
           </span>
           <h2>{report.repo.name}</h2>
           <p>{report.thesis}</p>
@@ -157,6 +203,13 @@ function ProjectXRayReport({ report }: { report: XRayReport }) {
           <ExternalLink size={15} aria-hidden="true" />
         </a>
       </div>
+
+      {notice ? (
+        <div className="xray-notice" role="status">
+          <AlertTriangle size={18} aria-hidden="true" />
+          <p>{notice}</p>
+        </div>
+      ) : null}
 
       <div className="xray-telemetry-grid" aria-label="Repository scan telemetry">
         <div>
@@ -276,20 +329,21 @@ export function ProjectXRayPage() {
     requestIdRef.current = requestId;
     setStatus({
       state: "loading",
-      message:
-        "Reading GitHub metadata and tree, then fetching selected evidence through raw files...",
+      message: backendProvider
+        ? "Requesting backend X-Ray from Repo Analyzer Service. Browser fallback remains available."
+        : "Reading GitHub metadata and tree, then fetching selected evidence through raw files...",
     });
 
     try {
       const repoInput = parseGithubRepoUrl(nextInput);
-      const result = await provider.inspect(repoInput);
+      const { result, notice } = await inspectProject(repoInput);
 
       if (requestIdRef.current !== requestId) {
         return;
       }
 
       const report = isSnapshot(result) ? buildStaticXrayReport(result) : result;
-      setStatus({ state: "ready", report });
+      setStatus({ state: "ready", report, notice });
     } catch (error) {
       if (requestIdRef.current !== requestId) {
         return;
@@ -327,9 +381,9 @@ export function ProjectXRayPage() {
           </span>
           <h1 id="xray-title">Paste a GitHub repo. Get an engineering read.</h1>
           <p>
-            Static browser mode scans public GitHub metadata, tree shape, README, manifests,
-            workflows, and docs to assemble an evidence-linked project breakdown. The report schema
-            is ready for a future backend AI mode.
+            {backendProvider
+              ? "Backend mode asks Repo Analyzer Service for the report, then falls back to the public browser scan if the service is unreachable."
+              : "Static browser mode scans public GitHub metadata, tree shape, README, manifests, workflows, and docs to assemble an evidence-linked project breakdown."}
           </p>
         </div>
 
@@ -374,10 +428,15 @@ export function ProjectXRayPage() {
         <section className="xray-empty-state">
           <CheckCircle2 size={22} aria-hidden="true" />
           <div>
-            <h2>Browser-only first, backend-ready later.</h2>
+            <h2>
+              {backendProvider
+                ? "Backend configured, browser fallback preserved."
+                : "Browser-only first, backend-ready later."}
+            </h2>
             <p>
-              No tokens, no AI key, no private data. The first version only reads public repository
-              evidence and keeps the same output shape that a future backend can return.
+              {backendProvider
+                ? "The configured backend can use server-side tokens and AI keys without exposing them to the frontend."
+                : "No tokens, no AI key, no private data. The first version only reads public repository evidence and keeps the same output shape that a future backend can return."}
             </p>
           </div>
         </section>
@@ -409,7 +468,9 @@ export function ProjectXRayPage() {
         </section>
       ) : null}
 
-      {status.state === "ready" ? <ProjectXRayReport report={status.report} /> : null}
+      {status.state === "ready" ? (
+        <ProjectXRayReport report={status.report} notice={status.notice} />
+      ) : null}
     </main>
   );
 }
