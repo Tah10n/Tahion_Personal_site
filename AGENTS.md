@@ -9,8 +9,8 @@ It is designed for GitHub Pages project hosting at `/Tahion_Personal_site/`.
 
 Core behavior:
 
-- Interactive WebGL hero backdrop with multiple visual variants and themes.
-- Local Prompt Cockpit tool with no backend and no external AI API calls.
+- Interactive canvas hero backdrop with a static fallback.
+- Project X-Ray tool for public GitHub repository analysis.
 - Portfolio content is centralized in `src/data/profile.ts`.
 
 ## Commands
@@ -40,17 +40,18 @@ This runs ESLint, Prettier check, TypeScript, and a production Vite build.
 
 ## Structure
 
-- `src/App.tsx`: main page composition and hero controls.
+- `src/App.tsx`: route shell, homepage composition, and top navigation.
 - `src/components/ShaderBackdrop.tsx`: WebGL/canvas backdrop variants, themes, parallax, and fallback.
-- `src/components/PromptCockpit.tsx`: local prompt generation, copy/reset/save, and `localStorage` history.
+- `src/pages/ProjectXRayPage.tsx`: Project X-Ray input, report rendering, and fallback states.
+- `src/xray/`: GitHub URL parsing, browser provider, backend adapter, static analyzer, demo report, and report types.
 - `src/data/profile.ts`: editable portfolio content, links, skills, and projects.
 - `src/styles.css`: global layout, responsive rules, visual themes, and component styling.
 
 ## Implementation Rules
 
-- Keep the site static-only unless the user explicitly asks for a backend.
+- Keep the hosted site usable as a static GitHub Pages app. Optional backend integrations must be public `VITE_` configuration and must preserve browser/demo fallbacks.
 - Do not add secrets or private values to the repo. Only use public `VITE_` env vars if needed.
-- Keep Prompt Cockpit data client-side only. Do not introduce network calls for prompt generation.
+- Do not put GitHub tokens, AI keys, or private repository credentials in the frontend.
 - Preserve the GitHub Pages base path in `vite.config.ts` unless the deploy target changes.
 - Do not commit `node_modules/` or `dist/`; they are ignored intentionally.
 - Prefer small, focused changes that preserve the existing visual direction.

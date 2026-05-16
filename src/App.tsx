@@ -5,108 +5,105 @@ import {
   Cpu,
   Gauge,
   Github,
+  Linkedin,
   Mail,
   MapPin,
   Send,
+  ShieldCheck,
   TerminalSquare,
   Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { PromptCockpit } from "./components/PromptCockpit";
 import { BackdropTheme, BackdropVariant, ShaderBackdrop } from "./components/ShaderBackdrop";
 import { profile } from "./data/profile";
+import { ProjectXRayPage } from "./pages/ProjectXRayPage";
 
 const iconMap = [BrainCircuit, Code2, Gauge, Cpu];
 
-const visualModes: {
+const activeVisualMode: {
   id: BackdropVariant;
   theme: BackdropTheme;
   label: string;
   shortLabel: string;
-  descriptor: string;
-}[] = [
-  {
-    id: "signal",
-    theme: "acid",
-    label: "ASCII Torus",
-    shortLabel: "Torus",
-    descriptor: "4 ASCII rings",
-  },
-  {
-    id: "topography",
-    theme: "plasma",
-    label: "Wave Lines",
-    shortLabel: "Waves",
-    descriptor: "Interactive line field",
-  },
-  {
-    id: "radar",
-    theme: "ice",
-    label: "Vanta Dots",
-    shortLabel: "Dots",
-    descriptor: "Moving dot field",
-  },
-];
+} = {
+  id: "signal",
+  theme: "acid",
+  label: "ASCII Torus",
+  shortLabel: "Torus",
+};
 
 const visualModeStorageKey = "tahion.visual.mode";
 const legacyVariantStorageKey = "tahion.backdrop.variant";
 
-function readStoredChoice<T extends string>(key: string, fallback: T, allowed: readonly T[]) {
-  const stored = window.localStorage.getItem(key);
-  return allowed.includes(stored as T) ? (stored as T) : fallback;
+function writeStoredChoice(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Intentionally ignore storage writes when storage is unavailable.
+  }
+}
+
+function useHashRoute() {
+  const [hash, setHash] = useState(() => window.location.hash);
+
+  useEffect(() => {
+    const handleHashChange = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  return hash.startsWith("#/xray") ? "xray" : "home";
 }
 
 function App() {
-  const [visualMode, setVisualMode] = useState<BackdropVariant>(() =>
-    readStoredChoice(
-      visualModeStorageKey,
-      readStoredChoice(
-        legacyVariantStorageKey,
-        "signal",
-        visualModes.map((item) => item.id),
-      ),
-      visualModes.map((item) => item.id),
-    ),
-  );
-  const activeVisualMode = visualModes.find((item) => item.id === visualMode) ?? visualModes[0];
+  const visualMode = activeVisualMode.id;
+  const route = useHashRoute();
+  const primaryContactHref = profile.contactCta.email
+    ? `mailto:${profile.contactCta.email}`
+    : (profile.links.find((link) => link.label === "LinkedIn")?.href ?? "#contact");
 
   useEffect(() => {
-    window.localStorage.setItem(visualModeStorageKey, visualMode);
-    window.localStorage.setItem(legacyVariantStorageKey, visualMode);
+    writeStoredChoice(visualModeStorageKey, visualMode);
+    writeStoredChoice(legacyVariantStorageKey, visualMode);
     document.documentElement.dataset.siteTheme = activeVisualMode.theme;
-  }, [activeVisualMode.theme, visualMode]);
+  }, [visualMode]);
+
+  if (route === "xray") {
+    return (
+      <>
+        <ShaderBackdrop variant={visualMode} theme={activeVisualMode.theme} />
+        <header className="topbar">
+          <a className="brand" href="#/" aria-label="Andrei Surkov home">
+            <TerminalSquare size={22} aria-hidden="true" />
+            <span>{profile.handle}</span>
+          </a>
+          <div className="topbar-actions">
+            <nav aria-label="Primary navigation">
+              <a href="#work">Work</a>
+              <a href="#/xray">X-Ray</a>
+              <a href="#contact">Contact</a>
+            </nav>
+          </div>
+        </header>
+        <ProjectXRayPage />
+      </>
+    );
+  }
 
   return (
     <main>
       <ShaderBackdrop variant={visualMode} theme={activeVisualMode.theme} />
       <header className="topbar">
-        <a className="brand" href="#hero-title" aria-label="Tahion home">
+        <a className="brand" href="#hero-title" aria-label="Andrei Surkov home">
           <TerminalSquare size={22} aria-hidden="true" />
           <span>{profile.handle}</span>
         </a>
         <div className="topbar-actions">
           <nav aria-label="Primary navigation">
             <a href="#work">Work</a>
-            <a href="#tools">Tools</a>
+            <a href="#/xray">X-Ray</a>
             <a href="#contact">Contact</a>
           </nav>
-
-          <div className="visual-controls" aria-label="Visual controls">
-            <div className="segmented-control mode-switch" aria-label="Visual style">
-              {visualModes.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={visualMode === item.id ? "is-active" : ""}
-                  onClick={() => setVisualMode(item.id)}
-                  aria-label={`Use ${item.label} visual style`}
-                >
-                  <span className="mode-label">{item.shortLabel}</span>
-                  <small>{item.descriptor}</small>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </header>
 
@@ -118,7 +115,11 @@ function App() {
                 <Zap size={15} aria-hidden="true" />
                 AI-native product builder
               </span>
-              <h1 id="hero-title">{profile.name}</h1>
+              <h1 id="hero-title">
+                {profile.name.split(" ").map((namePart) => (
+                  <span key={namePart}>{namePart}</span>
+                ))}
+              </h1>
               <p className="headline">{profile.headline}</p>
               <p className="bio">{profile.bio}</p>
 
@@ -133,11 +134,20 @@ function App() {
               </div>
 
               <div className="hero-actions">
-                <a href="#tools" className="primary-action">
-                  Open cockpit
+                <a href="#work" className="primary-action">
+                  View work
                   <ArrowUpRight size={17} aria-hidden="true" />
                 </a>
-                <a href={`mailto:${profile.contactCta.email}`} className="secondary-action">
+                <a href="#/xray" className="secondary-action">
+                  Project X-Ray
+                  <ShieldCheck size={17} aria-hidden="true" />
+                </a>
+                <a
+                  href={primaryContactHref}
+                  className="secondary-action"
+                  target={primaryContactHref.startsWith("http") ? "_blank" : undefined}
+                  rel={primaryContactHref.startsWith("http") ? "noreferrer" : undefined}
+                >
                   Contact
                   <Mail size={17} aria-hidden="true" />
                 </a>
@@ -181,8 +191,8 @@ function App() {
 
       <section className="content-band" id="work" aria-labelledby="work-title">
         <div className="section-heading">
-          <span className="eyebrow">Portfolio surface</span>
-          <h2 id="work-title">Selected work signals</h2>
+          <span className="eyebrow">Public proof</span>
+          <h2 id="work-title">Shipped systems, not pitch copy</h2>
         </div>
 
         <div className="project-grid">
@@ -190,14 +200,28 @@ function App() {
             <article className="project-card" key={project.title}>
               <div>
                 <span>{project.signal}</span>
-                <h3>{project.title}</h3>
+                <h3>
+                  {project.href ? (
+                    <a href={project.href} target="_blank" rel="noreferrer">
+                      {project.title}
+                      <ArrowUpRight size={16} aria-hidden="true" />
+                    </a>
+                  ) : (
+                    project.title
+                  )}
+                </h3>
               </div>
               <p>{project.description}</p>
+              <ul className="project-highlights">
+                {project.highlights.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
               <div className="project-meta">
                 <span>{project.type}</span>
                 <span>{project.status}</span>
               </div>
-              <ul>
+              <ul className="stack-list">
                 {project.stack.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
@@ -210,7 +234,7 @@ function App() {
       <section className="content-band skills-band" aria-labelledby="skills-title">
         <div className="section-heading">
           <span className="eyebrow">Operating range</span>
-          <h2 id="skills-title">Where the site points</h2>
+          <h2 id="skills-title">What the work says</h2>
         </div>
 
         <div className="skill-grid">
@@ -228,14 +252,6 @@ function App() {
         </div>
       </section>
 
-      <section className="tool-band" id="tools" aria-labelledby="tools-title">
-        <div className="section-heading">
-          <span className="eyebrow">Useful surface</span>
-          <h2 id="tools-title">AI vibe tool, running locally</h2>
-        </div>
-        <PromptCockpit />
-      </section>
-
       <section className="contact-band" id="contact" aria-labelledby="contact-title">
         <div>
           <span className="eyebrow">{profile.contactCta.eyebrow}</span>
@@ -243,13 +259,16 @@ function App() {
           <p>{profile.contactCta.body}</p>
         </div>
         <div className="contact-actions">
-          <a href={`mailto:${profile.contactCta.email}`}>
-            <Send size={17} aria-hidden="true" />
-            {profile.contactCta.email}
-          </a>
+          {profile.contactCta.email ? (
+            <a href={`mailto:${profile.contactCta.email}`}>
+              <Send size={17} aria-hidden="true" />
+              {profile.contactCta.email}
+            </a>
+          ) : null}
           {profile.links.map((link) => (
             <a key={link.label} href={link.href} target="_blank" rel="noreferrer">
               {link.label === "GitHub" ? <Github size={17} aria-hidden="true" /> : null}
+              {link.label === "LinkedIn" ? <Linkedin size={17} aria-hidden="true" /> : null}
               {link.label}
             </a>
           ))}

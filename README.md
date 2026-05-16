@@ -1,6 +1,6 @@
 # Tahion Personal Site
 
-Fast static Vite + React + TypeScript portfolio with an interactive WebGL backdrop and local Prompt Cockpit.
+Fast static Vite + React + TypeScript portfolio with an interactive WebGL backdrop and Project X-Ray.
 
 ## Requirements
 
@@ -22,6 +22,19 @@ npm run preview
 - `npm run dev` starts Vite at `http://127.0.0.1:5173/Tahion_Personal_site/`.
 - `npm run preview` serves the production build at `http://127.0.0.1:4173/Tahion_Personal_site/`.
 - `npm run check` runs ESLint, Prettier check, TypeScript, and production build.
+
+## Project X-Ray
+
+Project X-Ray lives at `#/xray`. It accepts a public GitHub repository URL and
+generates an evidence-linked engineering report from public repository metadata,
+README, manifests, workflows, docs, and tree shape.
+
+The first version is static-only and does not use backend services or AI API
+keys. The planned backend target is the shared Repo Analyzer Service at
+`C:\Users\tahion\dev\Projects\repo_analyzer_service`, but the hosted site should
+keep browser-static and demo fallbacks until that service is wired. See
+[docs/project-xray.md](docs/project-xray.md) for architecture, browser-mode
+limits, and the backend upgrade path.
 
 ## Content
 

@@ -19,6 +19,14 @@ type Palette = {
   ink: Rgb;
 };
 
+type AsciiBuffers = {
+  cols: number;
+  rows: number;
+  depthBuffer: Float32Array;
+  glyphBuffer: Array<string>;
+  shadeBuffer: Float32Array;
+};
+
 type ShaderBackdropProps = {
   variant: BackdropVariant;
   theme: BackdropTheme;
@@ -84,6 +92,38 @@ function mixRgb(a: Rgb, b: Rgb, t: number): Rgb {
     Math.round(mix(a[1], b[1], t)),
     Math.round(mix(a[2], b[2], t)),
   ];
+}
+
+function ensureAsciiBuffers(
+  existing: AsciiBuffers | null,
+  width: number,
+  height: number,
+): AsciiBuffers {
+  const fontSize = clamp(width / 112, 10, 17);
+  const lineHeight = fontSize * 1.12;
+  const cols = Math.ceil(width / fontSize);
+  const rows = Math.ceil(height / lineHeight);
+  const bufferLength = cols * rows;
+
+  const next =
+    existing &&
+    existing.cols === cols &&
+    existing.rows === rows &&
+    existing.depthBuffer.length === bufferLength
+      ? existing
+      : {
+          cols,
+          rows,
+          depthBuffer: new Float32Array(bufferLength),
+          glyphBuffer: new Array<string>(bufferLength),
+          shadeBuffer: new Float32Array(bufferLength),
+        };
+
+  next.depthBuffer.fill(-Infinity);
+  next.glyphBuffer.fill("");
+  next.shadeBuffer.fill(0);
+
+  return next;
 }
 
 function drawBase(
@@ -172,6 +212,7 @@ function drawAsciiTorus(
   pointer: Point,
   palette: Palette,
   reducedMotion: boolean,
+  buffers: AsciiBuffers,
 ) {
   drawBase(ctx, width, height, palette, "signal");
   drawTorusAmbient(ctx, width, height, reducedMotion ? 0 : time, palette);
@@ -180,11 +221,8 @@ function drawAsciiTorus(
   const lineHeight = fontSize * 1.12;
   const cols = Math.ceil(width / fontSize);
   const rows = Math.ceil(height / lineHeight);
-  const bufferLength = cols * rows;
-  const depthBuffer = new Float32Array(bufferLength);
-  const glyphBuffer = new Array<string>(bufferLength);
-  const shadeBuffer = new Float32Array(bufferLength);
-  depthBuffer.fill(-Infinity);
+  const { depthBuffer, glyphBuffer, shadeBuffer } = buffers;
+  const bufferLength = depthBuffer.length;
 
   const scrollTurn = scroll * tau * 2.15;
   const idle = reducedMotion ? 0 : time;
@@ -508,6 +546,7 @@ export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
   const pointerTargetRef = useRef<Point>({ x: 0.58, y: 0.42 });
   const scrollRef = useRef(0);
   const scrollTargetRef = useRef(0);
+  const asciiBuffersRef = useRef<AsciiBuffers | null>(null);
   const variantRef = useRef(variant);
   const themeRef = useRef(theme);
   const reducedMotionRef = useRef(false);
@@ -525,11 +564,28 @@ export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
   useEffect(() => {
     const shell = shellRef.current;
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d", { alpha: true });
+    const setFallback = (next: boolean) => {
+      if (shell) {
+        if (next) {
+          shell.setAttribute("data-fallback", "true");
+        } else {
+          shell.removeAttribute("data-fallback");
+        }
+      }
+    };
 
-    if (!shell || !canvas || !ctx) {
+    if (!shell || !canvas) {
+      setFallback(true);
       return undefined;
     }
+
+    const ctx = canvas.getContext("2d", { alpha: true });
+    if (!ctx) {
+      setFallback(true);
+      return undefined;
+    }
+
+    setFallback(false);
 
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let animationClock = 0;
@@ -589,7 +645,19 @@ export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
         const scroll = scrollRef.current;
 
         if (activeVariant === "signal") {
-          drawAsciiTorus(ctx, width, height, time, scroll, pointer, palette, renderReducedMotion);
+          const asciiBuffers = ensureAsciiBuffers(asciiBuffersRef.current, width, height);
+          asciiBuffersRef.current = asciiBuffers;
+          drawAsciiTorus(
+            ctx,
+            width,
+            height,
+            time,
+            scroll,
+            pointer,
+            palette,
+            renderReducedMotion,
+            asciiBuffers,
+          );
         } else if (activeVariant === "topography") {
           drawWaveLines(ctx, width, height, time, scroll, pointer, palette, renderReducedMotion);
         } else {
@@ -771,6 +839,7 @@ export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
     return () => {
       redrawLowPowerRef.current = null;
       stopRendering();
+      setFallback(false);
 
       window.removeEventListener("resize", resize);
       window.removeEventListener("scroll", updateScroll);
@@ -788,6 +857,7 @@ export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
       data-variant={variant}
       data-theme={theme}
     >
+      <div className="shader-static" aria-hidden="true" />
       <canvas ref={canvasRef} className="shader-canvas" />
     </div>
   );

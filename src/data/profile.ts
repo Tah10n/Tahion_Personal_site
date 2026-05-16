@@ -2,6 +2,8 @@ export type Project = {
   title: string;
   type: string;
   description: string;
+  href?: string;
+  highlights: string[];
   stack: string[];
   status: string;
   signal: string;
@@ -27,76 +29,80 @@ export type Profile = {
     eyebrow: string;
     title: string;
     body: string;
-    email: string;
+    email?: string;
   };
 };
 
 export const profile: Profile = {
-  name: "Tahion",
-  handle: "@tahion",
+  name: "Andrei Surkov",
+  handle: "Tahion / @Tah10n",
   headline:
-    "Vibecoder building sharp AI-native tools, fast interfaces, and strange useful systems.",
-  bio: "I turn fuzzy ideas into working prototypes, then tighten them into interfaces people can actually use. This site is a living cockpit for projects, experiments, and prompt craft.",
-  location: "Budapest / remote",
-  availability: "Open to AI tooling, product prototypes, and frontend systems",
+    "Java software engineer building AI-native products, on-device LLM apps, and coding-agent workflows.",
+  bio: "Freelance engineer focused on scalable intelligent apps: from local-first mobile AI to operator tools that connect coding agents, Telegram, and real project workflows.",
+  location: "Serbia / remote",
+  availability: "Open to AI tooling, on-device LLM apps, agent workflows, and product prototypes",
   links: [
-    { label: "GitHub", href: "https://github.com/" },
-    { label: "Telegram", href: "https://t.me/" },
-    { label: "Email", href: "mailto:hello@example.com" },
+    { label: "GitHub", href: "https://github.com/Tah10n" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/in/andreysurkov/" },
+    { label: "Pocket AI", href: "https://github.com/Tah10n/pocket-ai" },
   ],
   skills: [
     {
-      label: "AI workflow design",
+      label: "On-device AI products",
       description:
-        "Prompt systems, agent loops, evaluation checklists, and human-in-the-loop tools.",
+        "Mobile model discovery, GGUF downloads, local inference, memory-aware loading, and private chat UX.",
     },
     {
-      label: "Rapid product prototyping",
+      label: "Agent workflow automation",
       description:
-        "Vite, React, TypeScript, API wiring, local-first state, and polished MVP surfaces.",
+        "Telegram-first control layers, permission prompts, session routing, observability, and restart-safe state.",
     },
     {
-      label: "Interface taste",
+      label: "Full-stack delivery",
       description:
-        "Dense but legible UI, interaction details, responsive layouts, and fast feedback loops.",
+        "Java engineering background plus TypeScript, React Native, Node.js, API wiring, and product-grade docs.",
     },
     {
-      label: "Automation glue",
+      label: "Local-first interfaces",
       description:
-        "Scripts, bots, data transforms, and practical utilities that remove repetitive work.",
+        "Static apps, browser tools, storage-safe UX, compact controls, and fast feedback loops.",
     },
   ],
   projects: [
     {
-      title: "Prompt Cockpit",
-      type: "Local AI utility",
-      description: "A browser-only workspace for shaping prompts into clear, testable requests.",
-      stack: ["React", "TypeScript", "localStorage"],
-      status: "Live in this site",
-      signal: "Useful now",
-    },
-    {
-      title: "Agent Brief Builder",
-      type: "Experiment",
+      title: "Pocket AI",
+      type: "Offline-first mobile AI",
       description:
-        "A structured way to turn product intent into implementation-ready instructions.",
-      stack: ["UX systems", "Prompt design"],
-      status: "Prototype",
-      signal: "AI-native",
+        "A mobile app for discovering, downloading, and chatting with GGUF models directly on device.",
+      href: "https://github.com/Tah10n/pocket-ai",
+      highlights: [
+        "Runs downloaded models locally with no network needed for conversations.",
+        "Catalog, gated-model states, RAM-aware loading, and encrypted on-device history.",
+        "Expo + React Native product with release docs, tests, and English/Russian localization.",
+      ],
+      stack: ["Expo", "React Native", "TypeScript", "llama.rn", "MMKV"],
+      status: "Public app / v1.3.3",
+      signal: "On-device AI",
     },
     {
-      title: "Fast Tool Shelf",
-      type: "Utility collection",
-      description: "Small local tools for text, JSON, color, and launch planning workflows.",
-      stack: ["Browser APIs", "Vanilla logic"],
-      status: "Planned",
-      signal: "Expandable",
+      title: "opencode Telegram Connector",
+      type: "Coding-agent operations",
+      description:
+        "A Node.js connector that lets Telegram chats drive opencode sessions across projects.",
+      href: "https://github.com/Tah10n/opencode-telegram-connector",
+      highlights: [
+        "Per-thread bindings keep multiple project/session contexts active in parallel.",
+        "Inline Telegram buttons handle permission prompts and operator questions.",
+        "Fail-closed persisted state, redacted logs, feed modes, and runtime controls.",
+      ],
+      stack: ["Node.js", "ESM", "Telegram Bot API", "opencode"],
+      status: "Public / MIT",
+      signal: "Agent ops",
     },
   ],
   contactCta: {
     eyebrow: "Build signal",
-    title: "Have a product idea that needs a working shape?",
-    body: "Send the rough version: goal, users, constraints, and what would make it useful this week.",
-    email: "hello@example.com",
+    title: "Need an AI tool that has to work outside the demo?",
+    body: "Bring the rough version: users, constraints, runtime environment, and what would make it valuable this week. I can turn that into a working product path.",
   },
 };
