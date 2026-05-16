@@ -20,20 +20,16 @@ import { FormEvent, useMemo, useRef, useState } from "react";
 import { buildStaticXrayReport } from "../xray/analyzers/staticXrayAnalyzer";
 import { demoXrayReport } from "../xray/demoReport";
 import { parseGithubRepoUrl } from "../xray/githubUrl";
+import { inspectProjectWithFallback } from "../xray/inspectProject";
 import { BackendXrayProvider } from "../xray/providers/backendXrayProvider";
 import { GithubBrowserProvider } from "../xray/providers/githubBrowserProvider";
-import { RepoInput, RepoSnapshot, XRayReport } from "../xray/types";
+import { RepoSnapshot, XRayReport } from "../xray/types";
 
 type XRayStatus =
   | { state: "idle" }
   | { state: "loading"; message: string }
   | { state: "ready"; report: XRayReport; notice?: string }
   | { state: "error"; message: string };
-
-type InspectProjectResult = {
-  result: RepoSnapshot | XRayReport;
-  notice?: string;
-};
 
 const browserProvider = new GithubBrowserProvider();
 const configuredBackendUrl = import.meta.env.VITE_XRAY_BACKEND_URL?.trim() ?? "";
@@ -53,40 +49,6 @@ const sectionIcons = {
 
 function isSnapshot(value: RepoSnapshot | XRayReport): value is RepoSnapshot {
   return "provider" in value;
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Unknown error.";
-}
-
-async function inspectProject(input: RepoInput): Promise<InspectProjectResult> {
-  if (!backendProvider) {
-    return {
-      result: await browserProvider.inspect(input),
-    };
-  }
-
-  try {
-    return {
-      result: await backendProvider.inspect(input),
-    };
-  } catch (backendError) {
-    try {
-      return {
-        result: await browserProvider.inspect(input),
-        notice: `Backend X-Ray was unavailable (${errorMessage(
-          backendError,
-        )}). Rendered the browser-static fallback instead.`,
-      };
-    } catch (fallbackError) {
-      throw new Error(
-        `Backend X-Ray failed (${errorMessage(
-          backendError,
-        )}). Browser fallback also failed (${errorMessage(fallbackError)}).`,
-        { cause: fallbackError },
-      );
-    }
-  }
 }
 
 function formatNumber(value: number) {
@@ -336,7 +298,11 @@ export function ProjectXRayPage() {
 
     try {
       const repoInput = parseGithubRepoUrl(nextInput);
-      const { result, notice } = await inspectProject(repoInput);
+      const { result, notice } = await inspectProjectWithFallback(
+        repoInput,
+        backendProvider,
+        browserProvider,
+      );
 
       if (requestIdRef.current !== requestId) {
         return;
