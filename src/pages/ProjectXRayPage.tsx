@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { FormEvent, useMemo, useRef, useState } from "react";
+import { trackEvent } from "../analytics/events";
 import { buildStaticXrayReport } from "../xray/analyzers/staticXrayAnalyzer";
 import { demoXrayReport } from "../xray/demoReport";
 import { parseGithubRepoUrl } from "../xray/githubUrl";
@@ -298,6 +299,9 @@ export function ProjectXRayPage() {
 
     try {
       const repoInput = parseGithubRepoUrl(nextInput);
+      trackEvent("xray_run", {
+        mode: backendProvider ? "backend-ai" : "browser-static",
+      });
       const { result, notice } = await inspectProjectWithFallback(
         repoInput,
         backendProvider,
@@ -334,6 +338,9 @@ export function ProjectXRayPage() {
 
   const loadDemoReport = () => {
     requestIdRef.current += 1;
+    trackEvent("xray_demo_open", {
+      mode: backendProvider ? "backend-ai" : "browser-static",
+    });
     setStatus({ state: "ready", report: demoXrayReport });
   };
 
@@ -348,8 +355,8 @@ export function ProjectXRayPage() {
           <h1 id="xray-title">Paste a GitHub repo. Get an engineering read.</h1>
           <p>
             {backendProvider
-              ? "Backend mode asks Repo Analyzer Service for the report, then falls back to the public browser scan if the service is unreachable."
-              : "Static browser mode scans public GitHub metadata, tree shape, README, manifests, workflows, and docs to assemble an evidence-linked project breakdown."}
+              ? "Backend mode asks Repo Analyzer Service for the report, then falls back to the public browser scan if the service is unreachable. It is built as a product-builder proof: useful output first, safe fallbacks always."
+              : "Static browser mode scans public GitHub metadata, tree shape, README, manifests, workflows, and docs to assemble an evidence-linked project breakdown without exposing private tokens or AI keys."}
           </p>
         </div>
 
@@ -402,7 +409,7 @@ export function ProjectXRayPage() {
             <p>
               {backendProvider
                 ? "The configured backend can use server-side tokens and AI keys without exposing them to the frontend."
-                : "No tokens, no AI key, no private data. The first version only reads public repository evidence and keeps the same output shape that a future backend can return."}
+                : "No tokens, no AI key, no private data. The first version reads public repository evidence and keeps the same output shape that a stronger backend can return later."}
             </p>
           </div>
         </section>

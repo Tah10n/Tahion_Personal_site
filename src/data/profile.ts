@@ -3,26 +3,20 @@ export type Project = {
   type: string;
   description: string;
   href?: string;
+  impact: string;
   highlights: string[];
   stack: string[];
-  status: string;
   signal: string;
 };
 
 export type Profile = {
   name: string;
   handle: string;
-  headline: string;
-  bio: string;
-  location: string;
-  availability: string;
+  headline?: string;
+  bio?: string;
   links: {
     label: string;
     href: string;
-  }[];
-  skills: {
-    label: string;
-    description: string;
   }[];
   projects: Project[];
   contactCta: {
@@ -36,73 +30,86 @@ export type Profile = {
 export const profile: Profile = {
   name: "Andrei Surkov",
   handle: "Tahion / @Tah10n",
-  headline:
-    "Java software engineer building AI-native products, on-device LLM apps, and coding-agent workflows.",
-  bio: "Freelance engineer focused on scalable intelligent apps: from local-first mobile AI to operator tools that connect coding agents, Telegram, and real project workflows.",
-  location: "Serbia / remote",
-  availability: "Open to AI tooling, on-device LLM apps, agent workflows, and product prototypes",
   links: [
     { label: "GitHub", href: "https://github.com/Tah10n" },
     { label: "LinkedIn", href: "https://www.linkedin.com/in/andreysurkov/" },
-    { label: "Pocket AI", href: "https://github.com/Tah10n/pocket-ai" },
-  ],
-  skills: [
-    {
-      label: "On-device AI products",
-      description:
-        "Mobile model discovery, GGUF downloads, local inference, memory-aware loading, and private chat UX.",
-    },
-    {
-      label: "Agent workflow automation",
-      description:
-        "Telegram-first control layers, permission prompts, session routing, observability, and restart-safe state.",
-    },
-    {
-      label: "Full-stack delivery",
-      description:
-        "Java engineering background plus TypeScript, React Native, Node.js, API wiring, and product-grade docs.",
-    },
-    {
-      label: "Local-first interfaces",
-      description:
-        "Static apps, browser tools, storage-safe UX, compact controls, and fast feedback loops.",
-    },
+    { label: "Telegram", href: "https://t.me/moryak37" },
   ],
   projects: [
     {
       title: "Pocket AI",
-      type: "Offline-first mobile AI",
-      description:
-        "A mobile app for discovering, downloading, and chatting with GGUF models directly on device.",
+      type: "Mobile app",
+      description: "Download GGUF models and chat with them on your phone.",
       href: "https://github.com/Tah10n/pocket-ai",
+      impact: "Models run locally. Chats work offline and stay on the device.",
       highlights: [
-        "Runs downloaded models locally with no network needed for conversations.",
-        "Catalog, gated-model states, RAM-aware loading, and encrypted on-device history.",
-        "Expo + React Native product with release docs, tests, and English/Russian localization.",
+        "Model catalog with downloads and access checks.",
+        "Memory-aware model loading and encrypted chat history.",
+        "Expo and React Native, with tests and English/Russian UI.",
       ],
       stack: ["Expo", "React Native", "TypeScript", "llama.rn", "MMKV"],
-      status: "Public app / v1.3.3",
       signal: "On-device AI",
     },
     {
-      title: "opencode Telegram Connector",
-      type: "Coding-agent operations",
-      description:
-        "A Node.js connector that lets Telegram chats drive opencode sessions across projects.",
-      href: "https://github.com/Tah10n/opencode-telegram-connector",
+      title: "AI Telegram Bot",
+      type: "Telegram bot",
+      href: "https://t.me/AI_LLM_chatGPT_bot",
+      description: "AI chat, image generation, and file handling in Telegram.",
+      impact: "Model selection, paid credits, and admin tools.",
       highlights: [
-        "Per-thread bindings keep multiple project/session contexts active in parallel.",
-        "Inline Telegram buttons handle permission prompts and operator questions.",
-        "Fail-closed persisted state, redacted logs, feed modes, and runtime controls.",
+        "Multiple AI providers, image editing, and multilingual UI.",
+        "Telegram Stars payments, monthly credits, referrals, and per-model pricing.",
+        "Quarkus backend with MongoDB, Redis, monitoring, and tests.",
       ],
-      stack: ["Node.js", "ESM", "Telegram Bot API", "opencode"],
-      status: "Public / MIT",
-      signal: "Agent ops",
+      stack: ["Java", "Quarkus", "Telegram Bot API", "MongoDB", "Redis"],
+      signal: "Telegram AI",
+    },
+    {
+      title: "Vibe Racing",
+      type: "Web app and local connector",
+      description: "A weekly leaderboard for self-reported coding-agent token usage.",
+      href: "https://github.com/Tah10n/viberacing",
+      impact:
+        "Track usage across agents, accounts, and computers without uploading prompts or code.",
+      highlights: [
+        "Local collectors for Codex, Claude Code, OpenCode, and other coding agents.",
+        "Usage sync sends dates and aggregate token counts, with manual and event-triggered updates.",
+        "Next.js app, PostgreSQL database, and a local Node.js connector.",
+      ],
+      stack: ["Next.js", "React", "TypeScript", "PostgreSQL", "Node.js"],
+      signal: "Agent token usage",
+    },
+    {
+      title: "Project X-Ray",
+      type: "Repository analysis",
+      description: "Explore the code structure and history of public GitHub repositories.",
+      impact: "A separate tool, currently in development.",
+      highlights: [
+        "Reports based on repository metadata, docs, and code, with source links.",
+        "History tools in development: commit timelines, file changes, caching, and export.",
+        "Public repository data only; no private tokens in the browser.",
+      ],
+      stack: ["React", "TypeScript", "Vite", "GitHub API", "IndexedDB"],
+      signal: "Repo analysis",
+    },
+    {
+      title: "OpenCode tooling",
+      type: "Developer tools",
+      description: "Setup and repository tools for OpenCode coding agents.",
+      href: "https://github.com/Tah10n/opencode-harness",
+      impact: "Repository search, task coordination, and code review checks.",
+      highlights: [
+        "Prompts, subagent setup, review records, and runtime checks.",
+        "Tools for mapping, searching, and reading large repositories.",
+        "Limits and checks for agent memory and skill updates.",
+      ],
+      stack: ["OpenCode", "Node.js", "TypeScript", "MCP", "Agent workflows"],
+      signal: "OpenCode tools",
     },
   ],
   contactCta: {
-    eyebrow: "Build signal",
-    title: "Need an AI tool that has to work outside the demo?",
-    body: "Bring the rough version: users, constraints, runtime environment, and what would make it valuable this week. I can turn that into a working product path.",
+    eyebrow: "Contact",
+    title: "Have a role or project in mind?",
+    body: "Message me on Telegram or LinkedIn about AI development roles or projects.",
   },
 };

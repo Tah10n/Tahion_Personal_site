@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
+import { rasterizeAsciiSolid } from "./asciiPolyhedra";
+import { rasterizeAsciiDuck } from "./asciiDuck";
 
 export type BackdropVariant = "signal" | "topography" | "radar";
 export type BackdropTheme = "acid" | "plasma" | "ice";
+export type BackdropShape = "torus" | "cube" | "pyramid" | "duck";
 
 type Point = {
   x: number;
@@ -25,11 +28,13 @@ type AsciiBuffers = {
   depthBuffer: Float32Array;
   glyphBuffer: Array<string>;
   shadeBuffer: Float32Array;
+  coverageBuffer: Float32Array;
 };
 
 type ShaderBackdropProps = {
   variant: BackdropVariant;
   theme: BackdropTheme;
+  shape?: BackdropShape;
 };
 
 const palettes: Record<BackdropTheme, Palette> = {
@@ -117,6 +122,7 @@ function ensureAsciiBuffers(
           depthBuffer: new Float32Array(bufferLength),
           glyphBuffer: new Array<string>(bufferLength),
           shadeBuffer: new Float32Array(bufferLength),
+          coverageBuffer: new Float32Array(bufferLength),
         };
 
   next.depthBuffer.fill(-Infinity);
@@ -203,7 +209,7 @@ function drawTorusAmbient(
   ctx.restore();
 }
 
-function drawAsciiTorus(
+function drawAsciiShape(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
@@ -213,6 +219,7 @@ function drawAsciiTorus(
   palette: Palette,
   reducedMotion: boolean,
   buffers: AsciiBuffers,
+  shape: BackdropShape,
 ) {
   drawBase(ctx, width, height, palette, "signal");
   drawTorusAmbient(ctx, width, height, reducedMotion ? 0 : time, palette);
@@ -221,14 +228,15 @@ function drawAsciiTorus(
   const lineHeight = fontSize * 1.12;
   const cols = Math.ceil(width / fontSize);
   const rows = Math.ceil(height / lineHeight);
-  const { depthBuffer, glyphBuffer, shadeBuffer } = buffers;
+  const { depthBuffer, glyphBuffer, shadeBuffer, coverageBuffer } = buffers;
   const bufferLength = depthBuffer.length;
+  const isSolid = shape !== "torus";
 
   const scrollTurn = scroll * tau * 2.15;
   const idle = reducedMotion ? 0 : time;
   const rotateA = scrollTurn + idle * 0.025;
   const rotateB = scroll * tau * 1.28 + idle * 0.014;
-  const centerCol = cols * (width < 760 ? 0.74 : 0.61);
+  const centerCol = cols * (shape === "duck" ? 0.52 : width < 760 ? 0.74 : 0.61);
   const centerRow = rows * (width < 760 ? 0.38 : 0.46);
   const scale = Math.min(cols, rows) * (width < 760 ? 1.38 : 1.94);
   const lightSkew = (pointer.x - 0.5) * 0.22 + (0.5 - pointer.y) * 0.12;
@@ -239,7 +247,37 @@ function drawAsciiTorus(
   const cosB = Math.cos(rotateB);
   const sinB = Math.sin(rotateB);
 
-  for (let ring = 0; ring < torusRingCount; ring += 1) {
+  if (shape === "cube" || shape === "pyramid") {
+    rasterizeAsciiSolid({
+      shape,
+      cols,
+      rows,
+      centerCol,
+      centerRow,
+      scale,
+      rotateA,
+      rotateB,
+      lightSkew,
+      coverage: coverageBuffer,
+      shades: shadeBuffer,
+    });
+  }
+
+  if (shape === "duck") {
+    rasterizeAsciiDuck({
+      cols,
+      rows,
+      centerCol,
+      centerRow,
+      scale,
+      rotateA,
+      rotateB,
+      lightSkew,
+      coverage: coverageBuffer,
+      shades: shadeBuffer,
+    });
+  }
+  for (let ring = 0; shape === "torus" && ring < torusRingCount; ring += 1) {
     const ringRatio = ring / Math.max(torusRingCount - 1, 1);
     const layerStrength = 0.64 - ringRatio * 0.14;
     const thetaPhase = ring * 0.029;
@@ -292,7 +330,14 @@ function drawAsciiTorus(
   ctx.shadowBlur = 10;
   ctx.shadowColor = rgba(palette.primary, 0.24);
 
+  // All shapes use the torus text renderer: a discrete glyph in each cell,
+  // with identical font rasterization, glow, color and opacity.
   for (let index = 0; index < bufferLength; index += 1) {
+    if (isSolid) {
+      const shade = shadeBuffer[index];
+      if (coverageBuffer[index] < 0.5 || shade < 0.07) continue;
+      glyphBuffer[index] = torusGlyphs[Math.floor(shade * (torusGlyphs.length - 1))];
+    }
     const glyph = glyphBuffer[index];
     if (!glyph) {
       continue;
@@ -537,7 +582,7 @@ function drawGrain(
   ctx.restore();
 }
 
-export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
+export function ShaderBackdrop({ variant, theme, shape = "torus" }: ShaderBackdropProps) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -549,6 +594,7 @@ export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
   const asciiBuffersRef = useRef<AsciiBuffers | null>(null);
   const variantRef = useRef(variant);
   const themeRef = useRef(theme);
+  const shapeRef = useRef(shape);
   const reducedMotionRef = useRef(false);
   const lowPowerTimerRef = useRef<number | null>(null);
   const redrawLowPowerRef = useRef<(() => void) | null>(null);
@@ -556,10 +602,11 @@ export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
   useEffect(() => {
     variantRef.current = variant;
     themeRef.current = theme;
+    shapeRef.current = shape;
     if (reducedMotionRef.current) {
       redrawLowPowerRef.current?.();
     }
-  }, [theme, variant]);
+  }, [theme, variant, shape]);
 
   useEffect(() => {
     const shell = shellRef.current;
@@ -647,7 +694,7 @@ export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
         if (activeVariant === "signal") {
           const asciiBuffers = ensureAsciiBuffers(asciiBuffersRef.current, width, height);
           asciiBuffersRef.current = asciiBuffers;
-          drawAsciiTorus(
+          drawAsciiShape(
             ctx,
             width,
             height,
@@ -657,6 +704,7 @@ export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
             palette,
             renderReducedMotion,
             asciiBuffers,
+            shapeRef.current,
           );
         } else if (activeVariant === "topography") {
           drawWaveLines(ctx, width, height, time, scroll, pointer, palette, renderReducedMotion);
@@ -856,6 +904,7 @@ export function ShaderBackdrop({ variant, theme }: ShaderBackdropProps) {
       aria-hidden="true"
       data-variant={variant}
       data-theme={theme}
+      data-shape={shape}
     >
       <div className="shader-static" aria-hidden="true" />
       <canvas ref={canvasRef} className="shader-canvas" />

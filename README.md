@@ -1,6 +1,6 @@
 # Tahion Personal Site
 
-Fast static Vite + React + TypeScript portfolio with an interactive WebGL backdrop and Project X-Ray.
+Fast static Vite + React + TypeScript portfolio with an interactive WebGL backdrop.
 
 ## Requirements
 
@@ -27,21 +27,25 @@ npm run preview
 
 ## Project X-Ray
 
-Project X-Ray lives at `#/xray`. It accepts a public GitHub repository URL and
-generates an evidence-linked engineering report from public repository metadata,
-README, manifests, workflows, docs, and tree shape.
+Project X-Ray is an independent project in development. Its portfolio entry has
+no link until its dedicated website is ready. The former `#/xray` route redirects
+to the portfolio's Work section; the analyzer page is no longer imported or shipped
+in the site's JavaScript bundle.
 
-By default, Project X-Ray runs in browser-static mode and does not use backend
-services or AI API keys. Set `VITE_XRAY_BACKEND_URL` to the shared Repo Analyzer
-Service base URL to try backend X-Ray first:
+The existing analyzer source and helper tests are retained for future extraction.
+See [docs/project-xray.md](docs/project-xray.md) for those implementation notes.
 
-```bash
-VITE_XRAY_BACKEND_URL=http://127.0.0.1:3000
-```
+## Hidden Ops Dashboard
 
-The hosted site keeps browser-static and demo fallbacks even when the backend is
-configured. See [docs/project-xray.md](docs/project-xray.md) for architecture,
-browser-mode limits, and the backend path.
+The static site includes a hidden public-safe Ops route at `#/ops`. It is not
+linked from the public navigation and can show analytics setup status, provider
+dashboard embeds, public aggregate stats, Project X-Ray usage, and contact/link
+interaction signals.
+
+This is not real authentication. Keep all analytics configuration public-only and
+never put API keys or private tokens in frontend env vars. See
+[docs/analytics-provider.md](docs/analytics-provider.md) for Plausible, Umami,
+custom provider, and public stats feed setup.
 
 ## Content
 
@@ -56,3 +60,14 @@ base: "/Tahion_Personal_site/";
 ```
 
 If the repository or deploy path changes, update `vite.config.ts`.
+
+The `Deploy portfolio to GitHub Pages` workflow runs on every push to `main`
+and can also be started manually from GitHub Actions. It installs dependencies
+with `npm ci`, runs `npm run check`, and publishes only the built `dist/` directory.
+In the repository's Settings → Pages, select **GitHub Actions** as the source.
+
+Site: https://Tah10n.github.io/Tahion_Personal_site/
+
+Optional public analytics configuration is read from repository Actions variables
+named `VITE_ANALYTICS_*` (see `.env.example`). Local `.env` files are not uploaded.
+Without these variables, tracking stays disabled and `#/ops` shows demo statistics.
