@@ -9,8 +9,8 @@ It is designed for GitHub Pages project hosting at `/Tahion_Personal_site/`.
 
 Core behavior:
 
-- Interactive canvas hero backdrop with a static fallback.
-- Project X-Ray tool for public GitHub repository analysis.
+- Interactive Canvas 2D hero backdrop with selectable ASCII shapes and a static fallback.
+- On-demand soundtrack playback and a hidden public-safe analytics dashboard at `#/ops`.
 - Portfolio content is centralized in `src/data/profile.ts`.
 
 ## Commands
@@ -37,28 +37,30 @@ Before handing off code changes, run:
 npm run check
 ```
 
-This runs ESLint, Prettier check, Project X-Ray helper tests, TypeScript, and a production Vite build.
+This runs ESLint, Prettier check, the Node test suite in `tests/`, TypeScript, and a production Vite build.
 
 ## Structure
 
 - `src/App.tsx`: route shell, homepage composition, and top navigation.
-- `src/components/ShaderBackdrop.tsx`: WebGL/canvas backdrop variants, themes, parallax, and fallback.
-- `src/pages/ProjectXRayPage.tsx`: Project X-Ray input, report rendering, and fallback states.
-- `src/xray/`: GitHub URL parsing, browser provider, backend adapter, static analyzer, demo report, and report types.
+- `src/components/ShaderBackdrop.tsx`: Canvas 2D backdrop variants, themes, parallax, and fallback.
+- `src/components/SoundtrackWidget.tsx`: soundtrack controls.
+- `src/components/strudelRuntime.ts`: audio runtime initialization and playback.
+- `src/pages/OpsDashboardPage.tsx`: analytics configuration status, public stats, and dashboard embeds.
+- `src/analytics/`: public provider configuration, tracking, and aggregate stats validation.
 - `src/data/profile.ts`: editable portfolio content, links, skills, and projects.
+- `src/data/strudelSoundtrack.ts`: soundtrack content and pattern.
 - `src/styles.css`: global layout, responsive rules, visual themes, and component styling.
 
 ## Implementation Rules
 
-- Keep the hosted site usable as a static GitHub Pages app. Optional backend integrations must be public `VITE_` configuration and must preserve browser/demo fallbacks.
+- Keep the hosted site usable as a static GitHub Pages app. Optional analytics integrations must use public `VITE_` configuration and preserve the demo stats fallback.
 - Do not add secrets or private values to the repo. Only use public `VITE_` env vars if needed.
 - Do not put GitHub tokens, AI keys, or private repository credentials in the frontend.
-- Use `VITE_XRAY_BACKEND_URL` only for the public Repo Analyzer Service base URL; browser-static and demo fallbacks must keep working.
 - Preserve the GitHub Pages base path in `vite.config.ts` unless the deploy target changes.
 - Do not commit `node_modules/` or `dist/`; they are ignored intentionally.
 - Prefer small, focused changes that preserve the existing visual direction.
 - Keep mobile layouts free of horizontal overflow. Verify with a narrow viewport after visual changes.
-- If touching WebGL shader code, keep a working fallback path for browsers without WebGL.
+- If touching canvas rendering, preserve the static fallback when a Canvas 2D context is unavailable.
 
 ## UI Guidance
 

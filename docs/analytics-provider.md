@@ -38,16 +38,16 @@ VITE_BUILD_TIME=2026-06-17T00:00:00.000Z
 VITE_GIT_SHA=local
 ```
 
-| Variable                          | Required           | Purpose                                                                                                                                  |
-| --------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_ANALYTICS_PROVIDER`         | No                 | `plausible`, `umami`, `custom`, or unset/`none`. Unknown values are treated as `custom`.                                                 |
-| `VITE_ANALYTICS_SCRIPT_URL`       | No                 | Public tracker JavaScript URL. The app injects it once with `defer`.                                                                     |
-| `VITE_ANALYTICS_SITE_ID`          | Provider-dependent | Domain or website id. Used as `data-domain` for Plausible, `data-website-id` for Umami, and `data-site-id` for custom.                   |
-| `VITE_ANALYTICS_DASHBOARD_URL`    | No                 | Public/shared dashboard URL rendered as an iframe in `#/ops`.                                                                            |
-| `VITE_ANALYTICS_PUBLIC_STATS_URL` | No                 | Public JSON feed used for native Ops cards/lists.                                                                                        |
-| `VITE_ANALYTICS_TRACK_PAGEVIEWS`  | No                 | Defaults to `true`. Sends manual pageviews for hash routes and excludes `#/ops`. Set `false` if the provider handles SPA routing itself. |
-| `VITE_BUILD_TIME`                 | No                 | Display-only build metadata in `#/ops`.                                                                                                  |
-| `VITE_GIT_SHA`                    | No                 | Display-only build metadata in `#/ops`.                                                                                                  |
+| Variable                          | Required           | Purpose                                                                                                                                                                                     |
+| --------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_ANALYTICS_PROVIDER`         | No                 | `plausible`, `umami`, `custom`, or `none`. Unset with a script URL selects `custom`; unset without one disables tracking. Unknown values select `custom`.                                   |
+| `VITE_ANALYTICS_SCRIPT_URL`       | No                 | Public tracker JavaScript URL. The app injects it once with `defer`.                                                                                                                        |
+| `VITE_ANALYTICS_SITE_ID`          | Provider-dependent | Domain or website id. Used as `data-domain` for Plausible, `data-website-id` for Umami, and `data-site-id` for custom.                                                                      |
+| `VITE_ANALYTICS_DASHBOARD_URL`    | No                 | Public/shared dashboard URL rendered as an iframe in `#/ops`.                                                                                                                               |
+| `VITE_ANALYTICS_PUBLIC_STATS_URL` | No                 | Public JSON feed used for native Ops cards/lists.                                                                                                                                           |
+| `VITE_ANALYTICS_TRACK_PAGEVIEWS`  | No                 | Defaults to `true`. Sends app-managed pageviews for nonempty hashes, excluding `#/ops`. Set `false` when the provider tracks navigation. This flag does not control provider auto-tracking. |
+| `VITE_BUILD_TIME`                 | No                 | Display-only build metadata in `#/ops`.                                                                                                                                                     |
+| `VITE_GIT_SHA`                    | No                 | Display-only build metadata in `#/ops`.                                                                                                                                                     |
 
 The script URL must be only a URL. Do not paste a full `<script>` snippet into
 `.env.local`.
@@ -72,8 +72,6 @@ VITE_ANALYTICS_SITE_ID=your-domain.example
 ```text
 contact_click
 project_link_click
-xray_run
-xray_demo_open
 ```
 
 5. If you want the embedded provider dashboard in `#/ops`, create a Plausible
@@ -84,7 +82,7 @@ VITE_ANALYTICS_DASHBOARD_URL=https://plausible.io/share/your-domain.example?auth
 ```
 
 6. Keep `VITE_ANALYTICS_TRACK_PAGEVIEWS=true` if you want the app to send manual
-   pageviews for hash routes such as `#/xray`. The app excludes `#/ops` from
+   pageviews for section links such as `#work` and `#contact`. The app excludes `#/ops` from
    those pageviews.
 
 The current frontend injector supports external script tags and provider data
@@ -92,6 +90,10 @@ attributes. It does not run arbitrary inline provider initialization code from
 env vars. Do not also enable provider-side hash route auto-tracking unless you
 set `VITE_ANALYTICS_TRACK_PAGEVIEWS=false`, otherwise hash route pageviews can be
 counted twice.
+
+The `script.js` example uses the legacy `data-domain` integration. A provider
+snippet that requires `plausible.init(...)` also requires a code integration;
+copying only its script URL into the current injector is insufficient.
 
 ## Umami
 
@@ -104,18 +106,24 @@ Use Umami when you want a hosted or self-hosted analytics provider.
 VITE_ANALYTICS_PROVIDER=umami
 VITE_ANALYTICS_SCRIPT_URL=https://analytics.example.com/script.js
 VITE_ANALYTICS_SITE_ID=94db1cb1-74f4-4a40-ad6c-962362670409
+VITE_ANALYTICS_TRACK_PAGEVIEWS=false
 ```
 
-3. Keep Umami auto tracking enabled unless you have a reason to disable it.
-4. Keep `VITE_ANALYTICS_TRACK_PAGEVIEWS=true` if you want the app to send manual
-   pageviews for hash routes and exclude `#/ops`. If you prefer Umami's own SPA
-   routing behavior, set `VITE_ANALYTICS_TRACK_PAGEVIEWS=false` and configure
-   that behavior in Umami instead.
+3. Keep Umami auto tracking enabled and use the `false` value above to disable
+   the app's additional pageviews. Verify that each navigation is counted once.
+4. Opening `#/ops` directly does not load the tracker. When navigating there
+   after the tracker has loaded, Umami's automatic tracking can still record the
+   visit. The app's exclusion applies only to its own manual pageviews.
 5. If you expose an Umami share URL or a custom public dashboard URL, set:
 
 ```text
 VITE_ANALYTICS_DASHBOARD_URL=https://analytics.example.com/share/...
 ```
+
+The current injector does not set Umami's `data-auto-track`, `data-auto-pageview`,
+or `data-before-send` attributes. Using manual pageviews or filtering Ops visits
+at the provider requires a code integration; changing the app's pageview flag
+alone does not configure those provider features.
 
 ## Custom Provider
 
@@ -142,6 +150,11 @@ window.addEventListener("tahion:analytics", (event) => {
 });
 ```
 
+For app-managed pageviews, implement `window.tahionAnalytics.pageview(url, props)`
+or listen for `tahion:pageview`, whose `detail` contains `url` and `title`.
+The app sends these only for nonempty hashes outside `#/ops`; tracking a visit
+without a hash is the provider's responsibility.
+
 ## Public Stats Feed
 
 `#/ops` can render native cards from a public aggregate JSON feed. This is useful
@@ -166,9 +179,9 @@ Expected JSON shape:
     { "label": "Jun 16", "visitors": 58, "pageviews": 142 },
     { "label": "Jun 17", "visitors": 67, "pageviews": 156 }
   ],
-  "topPages": [{ "path": "/#/xray", "visitors": 92 }],
+  "topPages": [{ "path": "/Tahion_Personal_site/#work", "visitors": 92 }],
   "referrers": [{ "source": "github.com", "visitors": 134 }],
-  "events": [{ "name": "xray_run", "count": 38 }],
+  "events": [{ "name": "project_link_click", "count": 38 }],
   "updatedAt": "2026-06-17T00:00:00.000Z"
 }
 ```
@@ -197,14 +210,15 @@ Check:
 
 - Ops route renders without appearing in the public nav.
 - `Public-safe mode` shows the expected provider.
-- `Tracking script` is `Configured` when `VITE_ANALYTICS_SCRIPT_URL` is set.
+- `Tracking script` is `Configured` when a script URL is set and the provider is enabled.
 - `Stats feed` is `Configured` when `VITE_ANALYTICS_PUBLIC_STATS_URL` is set.
 - `Dashboard embed` is `Configured` when `VITE_ANALYTICS_DASHBOARD_URL` is set.
 - Opening `#/ops` directly does not install the analytics script.
-- Manual pageviews are sent for hash routes such as `#/xray`, but not for
-  `#/ops`.
-- Contact clicks, project link clicks, X-Ray runs, and demo opens appear in the
-  provider after the provider's normal processing delay.
+- With manual tracking enabled, pageviews are sent for `#work` and `#contact`,
+  but not for `#/ops`. With provider auto-tracking, verify its routing and filters
+  separately and check that pageviews are not duplicated.
+- Contact clicks and project link clicks appear in the provider after its normal
+  processing delay. Check on the deployed site if the provider excludes localhost.
 
 Before deploy:
 
@@ -218,12 +232,25 @@ For GitHub Pages, add only public `VITE_` variables to the build environment.
 The static app cannot keep secrets because all bundled frontend variables are
 visible to visitors.
 
-If using GitHub Actions, populate build metadata during the Vite build, for
-example:
+The existing workflow reads repository Actions variables named `VITE_ANALYTICS_*`
+and sets `VITE_GIT_SHA` from the commit being built. It does not currently set
+`VITE_BUILD_TIME`, so that field displays `Unset` in Ops.
+
+To add the build timestamp, insert this step before `Check and build` in
+`.github/workflows/deploy.yml`. Writing to `GITHUB_ENV` makes the value available
+to subsequent steps:
+
+```yaml
+- name: Set build timestamp
+  run: echo "VITE_BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+```
+
+For a local Bash build, export the variables before invoking npm:
 
 ```bash
-VITE_BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-VITE_GIT_SHA=$GITHUB_SHA
+export VITE_BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+export VITE_GIT_SHA=$(git rev-parse HEAD)
+npm run build
 ```
 
 After deploy, open the production URL:
