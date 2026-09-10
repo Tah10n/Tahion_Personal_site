@@ -19,8 +19,8 @@ and Vite; deployed as a static site on GitHub Pages.
 - **Optional analytics** for pageviews, project links, contact clicks, and player actions.
 
 The portfolio does not require a backend or an analytics account to run.
-Project X-Ray is listed as a separate project in development; its analysis page
-is not part of the active site. Old `#/xray` links redirect to Work.
+Git Analyzer is listed as a separate project for exploring repository history,
+with a link to its GitHub repository. Old `#/xray` links redirect to Work.
 
 ## Run locally
 
